@@ -11,6 +11,10 @@ from elixir import *
 import numpy as np
 import config as cfg
 
+import MeCab
+tagger = MeCab.Tagger("-Owakati")
+
+
 class GeoTweets(Entity):
     using_options(tablename='gc_tweets', autoload=True)
 
@@ -21,31 +25,18 @@ metadata.bind = "%(engine)s://%(userid)s:%(passwd)s@%(host)s/%(name)s" % cfg.db
 setup_all()
 
 res = GeoTweets.query.filter(GeoTweets.timestamp >= '2015-04-21 10:00:00')\
-        .filter(GeoTweets.timestamp < '2015-04-21 18:00:00').limit(10)
-print(res)
+        .filter(GeoTweets.timestamp < '2015-04-21 18:00:00').limit(1000)
 
-data = []
+_items = []
 for r in res:
-    print(r.lotext)
-
-
-_items = [
-    'わたし まけ まし た わ 。',
-    'わたし まけ まし た わ',
-    'わたし 負け まし た わ',
-    'わたし まけ まし た わ',
-    'となり の きゃく は よく かき くう きゃく だ',
-    'にわ には にわ なかにわ には にわ にわとり が いる',
-    'バカ と テスト と 召喚獣',
-    '俺 の 妹 が こんな に 可愛い わけ が ない'
-]
+    _items.append(tagger.parse(r.text))
 
 vectorizer = TfidfVectorizer(
     use_idf=True
 )
 X = vectorizer.fit_transform(_items)
 
-lsa = TruncatedSVD(10)
+lsa = TruncatedSVD(20)
 X = lsa.fit_transform(X)
 X = Normalizer(copy=False).fit_transform(X)
 
@@ -53,6 +44,15 @@ km = KMeans(
     init='k-means++',
 )
 km.fit(X)
+labels = km.labels_
 
-print(km.labels_)
+texts = {}
+for l in labels:
+    texts[l] = []
+for l, item in zip(labels, _items):
+    texts[l].append(item)
 
+for t in texts:
+    print('----------' + str(t) + '---------')
+    for i in texts[t]:
+        print(i)
