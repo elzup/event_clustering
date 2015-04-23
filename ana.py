@@ -36,8 +36,6 @@ class GeoTweets(Base):
         self.latlng = latlong
         self.rule_id = rule_id
         self.timestamp = timestamp
-        self.lat = session.scalar(r.latlng.x)
-        self.lng = session.scalar(r.latlng.y)
 
 db_config = "%(engine)s://%(userid)s:%(passwd)s@%(host)s/%(name)s" % cfg.db
 engine = create_engine(db_config, encoding='utf-8')
@@ -49,10 +47,9 @@ res = session.query(GeoTweets).filter(GeoTweets.timestamp >= '2015-04-21 10:00:0
 
 datas = []
 for r in res:
+    r.lat = session.scalar(r.latlng.x)
+    r.lng = session.scalar(r.latlng.y)
     datas.append((r.lat, r.lng))
-
-exit()
-
 
 features = np.array(datas);
 
@@ -63,14 +60,14 @@ kmeans_model = KMeans(n_clusters=10, random_state=10).fit(features)
 # 分類先となったラベルを取得する
 labels = kmeans_model.labels_
 
-texts = {}
+clusters = {}
 for l in labels:
-    texts[l] = []
-for l, item in zip(labels, _items):
-    texts[l].append(item)
+    clusters[l] = []
+for l, data in zip(labels, datas):
+    clusters[l].append(data)
 
-for t in texts:
-    print('----------' + str(t) + '---------')
-    for i in texts[t]:
+for i, cluster in clusters.iteritems():
+    print('----------' + str(i) + '---------')
+    for i in cluster:
         print(i)
 
