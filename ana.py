@@ -59,32 +59,34 @@ for r in res:
         tag_list[tag].append(r)
 print('#- tag grouping finish')
 
+# 上位10件
 tag_list = sorted(tag_list.items(), key=lambda x: len(x[1]), reverse=True)[:10:]
 
 # TODO: chose target tag
-(tag, tweets) = tag_list[1]
-for r in tweets:
-    r.lat = session.scalar(r.latlng.x)
-    r.lng = session.scalar(r.latlng.y)
-    datas.append((r.lat, r.lng))
-features = np.array(datas);
+for tag, tweets in tag_list:
+    for r in tweets:
+        r.lat = session.scalar(r.latlng.x)
+        r.lng = session.scalar(r.latlng.y)
+        datas.append((r.lat, r.lng))
+    features = np.array(datas);
 
-# K-means クラスタリングをおこなう
-# この例では 3 つのグループに分割、 10 回のランダマイズをおこなう
-kmeans_model = KMeans(n_clusters=10, random_state=100).fit(features)
+    # K-means クラスタリングをおこなう
+    # この例では 3 つのグループに分割、 10 回のランダマイズをおこなう
+    kmeans_model = KMeans(n_clusters=10, random_state=1000).fit(features)
 
-# 分類先となったラベルを取得する
-labels = kmeans_model.labels_
+    # 分類先となったラベルを取得する
+    labels = kmeans_model.labels_
 
-clusters = {}
-for l in labels:
-    clusters[l] = []
-for l, data in zip(labels, datas):
-    clusters[l].append(data)
+    clusters = {}
+    for l in labels:
+        clusters[l] = []
+    for l, data in zip(labels, datas):
+        clusters[l].append(data)
 
-print(tag)
-for i, cluster in clusters.iteritems():
-    print('----------' + str(i) + '----------')
-    for i in cluster:
-        print(i)
+    print
+    print(tag)
+    for i, cluster in clusters.iteritems():
+        print('----------' + str(i) + '----------')
+        for i in cluster:
+            print(i)
 
