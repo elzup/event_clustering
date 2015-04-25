@@ -1,2 +1,5 @@
 config.py
 *.pyc
+public/data.json
+res
+plan/cluster_data.json

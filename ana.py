@@ -15,6 +15,7 @@ from geoalchemy.mysql import MySQLComparator
 import json
 import re
 from datetime import datetime
+import time
 # config
 import config as cfg
 # ma
@@ -37,6 +38,16 @@ class GeoTweets(Base):
         self.latlng = latlong
         self.rule_id = rule_id
         self.timestamp = timestamp
+    def to_JSON(self):
+        return {
+            'id': str(self.id),
+            'tweet_id': str(self.tweet_id),
+            'text': str(self.text),
+            'lat': str(self.lat),
+            'lng': str(self.lng),
+            'rule_id': str(self.rule_id),
+            'timestamp': str(self.timestamp)
+        }
 
 def get_hashtag(text):
     pattern = r'#([\w一-龠ぁ-んァ-ヴーａ-ｚ]+)'
@@ -62,6 +73,7 @@ print('#- tag grouping finish')
 # 上位10件
 tag_list = sorted(tag_list.items(), key=lambda x: len(x[1]), reverse=True)[:10:]
 
+result = []
 # TODO: chose target tag
 for tag, tweets in tag_list:
     for r in tweets:
@@ -78,15 +90,22 @@ for tag, tweets in tag_list:
     labels = kmeans_model.labels_
 
     clusters = {}
-    for l in labels:
-        clusters[l] = []
-    for l, data in zip(labels, datas):
-        clusters[l].append(data)
+    for l, data in zip(labels, tweets):
+        if not clusters.has_key(str(l)):
+            clusters[str(l)] = []
+        print(data.to_JSON())
+        clusters[str(l)].append(data.to_JSON())
+    result.append({
+        'tag': tag,
+        'clusters': clusters
+    })
 
-    print
-    print(tag)
-    for i, cluster in clusters.iteritems():
-        print('----------' + str(i) + '----------')
-        for i in cluster:
-            print(i)
+print(json.dumps(result))
+
+#    print
+#    print(tag)
+#    for i, cluster in clusters.iteritems():
+#        print('----------' + str(i) + '----------')
+#        for i in cluster:
+#            print(i)
 
