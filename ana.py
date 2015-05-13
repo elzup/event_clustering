@@ -58,13 +58,19 @@ def get_hashtag(text):
     pattern = r'#([\w一-龠ぁ-んァ-ヴーａ-ｚ]+)'
     return re.findall(pattern, text)
 
+
+def save_file(str, filename):
+    f = open(filename, 'w')
+    f.write(str)
+    f.close()
+
 db_config = "%(engine)s://%(userid)s:%(passwd)s@%(host)s/%(name)s" % cfg.db
 engine = create_engine(db_config, encoding='utf-8')
 session = scoped_session(
         sessionmaker(autocommit=False, autoflush=False, bind=engine))
 res = session.query(GeoTweets).filter(
         GeoTweets.timestamp >= '2015-05-10 00:00:00')\
-        .filter(GeoTweets.timestamp < '2015-04-11 00:00:00').all()
+        .filter(GeoTweets.timestamp < '2015-05-11 00:00:00').all()
 print('#- record load finish')
 
 datas = []
@@ -101,19 +107,19 @@ for tag, tweets in tag_list:
     for l, data in zip(labels, tweets):
         if not clusters.has_key(str(l)):
             clusters[str(l)] = []
-        print(data.to_JSON())
         clusters[str(l)].append(data.to_JSON())
     result.append({
         'tag': tag,
         'clusters': clusters
     })
+    str = json.dumps(result)
+    date_str = '2015-05-10'
+    save_file(str, date_str + '_' + tag + '.json')
+    exit()
 
-print(json.dumps(result))
-
-#    print
-#    print(tag)
-#    for i, cluster in clusters.iteritems():
-#        print('----------' + str(i) + '----------')
-#        for i in cluster:
-#            print(i)
-
+# print
+# print(tag)
+# for i, cluster in clusters.iteritems():
+#     print('----------' + str(i) + '----------')
+#     for i in cluster:
+#         print(i)
