@@ -59,7 +59,7 @@ def get_hashtag(text):
     return re.findall(pattern, text)
 
 
-def save_file(str, filename):
+def save_file(filename, str):
     f = open(filename, 'w')
     f.write(str)
     f.close()
@@ -108,18 +108,23 @@ for tag, tweets in tag_list:
         if not clusters.has_key(str(l)):
             clusters[str(l)] = []
         clusters[str(l)].append(data.to_JSON())
+
+    max_n = 0
+    top_cluster = None
+    for k, v in clusters.items():
+        l = len(v)
+        if max_n < l:
+            max_n = l
+            top_cluster = v
+
     result.append({
         'tag': tag,
-        'clusters': clusters
+        'top-cluster': top_cluster
     })
-    str = json.dumps(result)
-    date_str = '2015-05-10'
-    save_file(str, date_str + '_' + tag + '.json')
-    exit()
+    if len(result) == 5:
+        break
 
-# print
-# print(tag)
-# for i, cluster in clusters.iteritems():
-#     print('----------' + str(i) + '----------')
-#     for i in cluster:
-#         print(i)
+#        'clusters': clusters
+str = json.dumps(result)
+date_str = '2015-05-10'
+save_file(date_str + '.json', str)

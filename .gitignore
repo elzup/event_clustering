@@ -4,3 +4,5 @@ public/data.json
 res
 plan/cluster_data.json
 *.json
+
+/vendor/
