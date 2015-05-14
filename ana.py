@@ -78,10 +78,21 @@ datas = []
 tag_list = {}
 for r in res:
     tags = get_hashtag(r.text)
+    if len(tags) > 3:
+        tags = tags[:3]
     for tag in tags:
         if tag not in tag_list:
             tag_list[tag.lower()] = []
-        tag_list[tag.lower()].append(r)
+
+# TODO: add trend words
+
+i = 0
+for r in res:
+    i += 1
+    print(i)
+    for tag in tag_list.keys():
+        if tag in r.text.lower():
+            tag_list[tag].append(r)
 print('#- tag grouping finish')
 
 tag_list = sorted(tag_list.items(), key=lambda x: len(x[1]), reverse=True)
