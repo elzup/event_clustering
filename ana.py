@@ -91,8 +91,8 @@ tag_list = sorted(tag_list.items(), key=lambda x: len(x[1]), reverse=True)
 result = []
 # TODO: chose target tag
 for tag, tweets in tag_list:
-    print(len(tweets))
-    if (len(tweets) < 30):
+    twl = len(tweets)
+    if (twl < 30):
         break
     for r in tweets:
         r.lat = session.scalar(r.latlng.x)
@@ -103,12 +103,14 @@ for tag, tweets in tag_list:
     features = np.array(datas)
 
     # K-means クラスタリングをおこなう
-    # この例では 3 つのグループに分割、 10 回のランダマイズをおこなう
-#    model = cluster.AgglomerativeClustering(linkage='average',
-#                                                    connectivity=True,
-#                                                    n_clusters=3)
-#    model = cluster.KMeans(n_clusters=10, random_state=1000)
-    model = cluster.DBSCAN(eps=.001)
+    n_clusters = max(twl // 100, 2)
+#    model = cluster.AffinityPropagation(damping=.9, preference=-200)
+#    model = cluster.MiniBatchKMeans(n_clusters=n_clusters)
+    model = cluster.KMeans(n_clusters=n_clusters, random_state=3000)
+#    model = cluster.SpectralClustering(n_clusters=2,
+#                                       eigen_solver='arpack',
+#                                       affinity="nearest_neighbors")
+#    model = cluster.DBSCAN(eps=0.5, n_clusters=n_clusters)
     kmeans_model = model.fit(features)
 
     # 分類先となったラベルを取得する
