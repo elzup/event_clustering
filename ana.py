@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 # machine learnign
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import KMeans
-from sklearn.decomposition import TruncatedSVD
-from sklearn.preprocessing import Normalizer
+from sklearn import cluster
 import numpy as np
 # db
 from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
 from geoalchemy import GeometryColumn, Point
-from geoalchemy.mysql import MySQLComparator
+# from geoalchemy.mysql import MySQLComparator
 # utirity
 import json
 import re
@@ -23,6 +20,10 @@ import MeCab
 
 tagger = MeCab.Tagger("-Owakati")
 Base = declarative_base()
+
+date_str = '2015-05-10'
+# TODO: auto calc
+date_str_next = '2015-05-11'
 
 
 class GeoTweets(Base):
@@ -69,8 +70,8 @@ engine = create_engine(db_config, encoding='utf-8')
 session = scoped_session(
         sessionmaker(autocommit=False, autoflush=False, bind=engine))
 res = session.query(GeoTweets).filter(
-        GeoTweets.timestamp >= '2015-05-10 00:00:00')\
-        .filter(GeoTweets.timestamp < '2015-05-11 00:00:00').all()
+        GeoTweets.timestamp >= date_str + ' 00:00:00')\
+        .filter(GeoTweets.timestamp < date_str_next + ' 00:00:00').all()
 print('#- record load finish')
 
 datas = []
@@ -78,9 +79,9 @@ tag_list = {}
 for r in res:
     tags = get_hashtag(r.text)
     for tag in tags:
-        if not tag_list.has_key(tag):
-            tag_list[tag] = []
-        tag_list[tag].append(r)
+        if tag not in tag_list:
+            tag_list[tag.lower()] = []
+        tag_list[tag.lower()].append(r)
 print('#- tag grouping finish')
 
 tag_list = sorted(tag_list.items(), key=lambda x: len(x[1]), reverse=True)
@@ -90,41 +91,56 @@ tag_list = sorted(tag_list.items(), key=lambda x: len(x[1]), reverse=True)
 result = []
 # TODO: chose target tag
 for tag, tweets in tag_list:
+    print(len(tweets))
+    if (len(tweets) < 30):
+        break
     for r in tweets:
         r.lat = session.scalar(r.latlng.x)
         r.lng = session.scalar(r.latlng.y)
-        datas.append((r.lat, r.lng))
+        (hh, mm, ss) = map(int, (str(r.timestamp)[11:19].split(':')))
+        datas.append([r.lat, r.lng])
+#        datas.append((r.lat, r.lng, 60 * hh + mm))
     features = np.array(datas)
 
     # K-means クラスタリングをおこなう
     # この例では 3 つのグループに分割、 10 回のランダマイズをおこなう
-    kmeans_model = KMeans(n_clusters=10, random_state=1000).fit(features)
+#    model = cluster.AgglomerativeClustering(linkage='average',
+#                                                    connectivity=True,
+#                                                    n_clusters=3)
+#    model = cluster.KMeans(n_clusters=10, random_state=1000)
+    model = cluster.DBSCAN(eps=.001)
+    kmeans_model = model.fit(features)
 
     # 分類先となったラベルを取得する
     labels = kmeans_model.labels_
 
     clusters = {}
     for l, data in zip(labels, tweets):
-        if not clusters.has_key(str(l)):
+        if str(l) not in clusters:
             clusters[str(l)] = []
         clusters[str(l)].append(data.to_JSON())
 
     max_n = 0
     top_cluster = None
+    other_clusters = []
     for k, v in clusters.items():
         l = len(v)
         if max_n < l:
             max_n = l
             top_cluster = v
+            continue
+        other_clusters.append(v)
+
+    print(max_n, tag)
 
     result.append({
         'tag': tag,
-        'top-cluster': top_cluster
+        'top_cluster': top_cluster,
+        'other_clusters': other_clusters
     })
-    if len(result) == 5:
+    if len(result) == 20:
         break
 
 #        'clusters': clusters
 str = json.dumps(result)
-date_str = '2015-05-10'
 save_file(date_str + '.json', str)
